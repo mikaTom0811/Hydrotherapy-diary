@@ -3,193 +3,362 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>הידרותרפיה</title>
+    <title>ניהול קליניקה הידרותרפיה 🌊</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
-        :root { --blue: #0288d1; --bg: #e1f5fe; --success: #4caf50; --error: #f44336; --warn: #ff9800; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .app-grid { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-        @media (max-width: 768px) { .app-grid { grid-template-columns: 1fr; } }
-        .card { background: white; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
-        header { background: var(--blue); color: white; padding: 15px; text-align: center; }
-        .patients-sidebar { padding: 15px; }
-        .patient-item { border-bottom: 1px solid #eee; padding: 10px 0; }
-        .patient-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
-        .limit-input { width: 45px; text-align: center; border: 1px solid #ddd; border-radius: 4px; padding: 2px; }
-        .slot-card { border-bottom: 1px solid #eee; padding: 12px; display: flex; align-items: center; gap: 10px; }
-        .time-tag { background: var(--blue); color: white; padding: 4px 8px; border-radius: 6px; font-weight: bold; min-width: 50px; text-align: center; }
-        .patient-select-area { flex-grow: 1; cursor: pointer; padding: 5px; }
-        .count-badge { font-size: 0.75em; padding: 2px 6px; border-radius: 10px; background: #f0f0f0; margin-right: 8px; font-weight: bold; }
-        .circle-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; }
-        .circle-btn.v.active { background: var(--success); color: white; border-color: var(--success); }
-        .circle-btn.x.active { background: var(--error); color: white; border-color: var(--error); }
-        .warn { color: var(--warn); }
-        .danger { color: var(--error); }
-        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; box-shadow: 0 0 50px rgba(0,0,0,0.3); z-index: 100; width: 85%; max-width: 350px; }
-        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 99; }
-        .patient-pick-btn { width: 100%; padding: 12px; margin-bottom: 6px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; background: #f9f9f9; text-align: right; font-weight: 500; }
-        .patient-pick-btn:hover { background: #e3f2fd; }
+        :root { 
+            --primary-ocean: #0F4C75;   
+            --accent-aqua: #00B4D8;     
+            --selected-blue: #0077B6;   
+            --bg-mist: #F2FAFD;         
+            --sidebar-bg: #F0F9FF;      
+            --card-bg: #FFFFFF;
+            --text-main: #1E293B;       
+            --text-muted: #64748B;
+            --success-seafoam: #4FD1C5; 
+            --error-soft: #FC8181;
+            --border-light: #E0F2F7;
+            --shadow-soft: 0 4px 12px rgba(0, 119, 182, 0.08);
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg-mist); 
+            margin: 0; 
+            color: var(--text-main); 
+        }
+        
+        .app-container { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
+        @media (max-width: 900px) { .app-container { grid-template-columns: 1fr; height: auto; } }
+
+        .sidebar { 
+            background: var(--sidebar-bg); 
+            border-left: 1px solid var(--border-light); 
+            padding: 24px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+        }
+        .sidebar-header h3 { color: var(--primary-ocean); margin: 0; font-size: 1.3rem; }
+
+        .patient-nav-item { 
+            background: var(--card-bg); 
+            padding: 14px 18px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            border: 1px solid transparent; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: var(--shadow-soft);
+        }
+        .patient-nav-item:hover { 
+            border-color: var(--accent-aqua); 
+            background: #EBFBFF; 
+            transform: scale(1.02);
+        }
+        .quota { font-size: 0.8rem; font-weight: 700; color: var(--primary-ocean); background: #E0F7FA; padding: 4px 10px; border-radius: 20px; }
+
+        .main-content { padding: 32px; }
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 24px; 
+            box-shadow: var(--shadow-soft); 
+            overflow: hidden; 
+            border: 1px solid var(--border-light); 
+        }
+
+        header { 
+            background: linear-gradient(135deg, #E0F7FA 0%, #F0F9FF 100%); 
+            padding: 40px 20px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-light);
+        }
+        header h2 { color: var(--primary-ocean); margin-bottom: 20px; }
+        
+        .flatpickr-day.is-work-day { 
+            background: #E6FFFA !important; 
+            border: 1px solid var(--success-seafoam) !important;
+            color: #2C7A7B !important;
+            font-weight: 700;
+        }
+        .flatpickr-day.selected { 
+            background: var(--selected-blue) !important; 
+            border-color: var(--selected-blue) !important; 
+            color: white !important; 
+        }
+
+        .slot-card { 
+            border-bottom: 1px solid var(--border-light); 
+            padding: 20px 35px; 
+            display: flex; 
+            align-items: center; 
+            gap: 25px; 
+            transition: background 0.2s;
+        }
+        .slot-card:hover { background: #F8FDFF; }
+        .time-tag { 
+            background: #E0F7FA; 
+            color: var(--primary-ocean); 
+            padding: 10px 18px; 
+            border-radius: 12px; 
+            font-weight: 800; 
+            min-width: 60px;
+            text-align: center;
+        }
+        .patient-slot-info { flex-grow: 1; cursor: pointer; font-size: 1.15rem; font-weight: 600; color: var(--text-main); }
+        
+        .actions { display: flex; gap: 12px; }
+        .btn-icon { 
+            width: 44px; height: 44px; border-radius: 14px; 
+            border: 1px solid var(--border-light); background: white; 
+            cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            font-size: 1.1rem; transition: 0.2s; color: #94A3B8;
+        }
+        .btn-v.active { background: var(--success-seafoam); color: white; border-color: var(--success-seafoam); box-shadow: 0 4px 10px rgba(79, 209, 197, 0.4); }
+        .btn-x.active { background: var(--error-soft); color: white; border-color: var(--error-soft); box-shadow: 0 4px 10px rgba(252, 129, 129, 0.4); }
+        .btn-note.has-note { color: var(--selected-blue); background: #E0F7FA; border-color: var(--selected-blue); }
+
+        .modal { 
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); background: white; 
+            padding: 35px; border-radius: 24px; z-index: 100; width: 90%; max-width: 550px;
+            box-shadow: 0 20px 40px rgba(15, 76, 117, 0.2);
+        }
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 76, 117, 0.2); backdrop-filter: blur(4px); z-index: 99; }
+        
+        input, textarea { 
+            width: 100%; padding: 14px; border: 1px solid var(--border-light); 
+            border-radius: 12px; margin-bottom: 16px; font-size: 1rem; background: #F9FCFD;
+        }
+        .save-btn { 
+            background: var(--selected-blue); color: white; border: none; 
+            padding: 18px; width: 100%; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
+        .save-btn:hover { background: var(--primary-ocean); }
+        .btn-close { background: #F1F5F9; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; color: var(--text-muted); }
     </style>
 </head>
 <body>
 
-<div class="app-grid">
-    <div class="card">
-        <header>
-            <h3>Hydrotherapy diary 🌊</h3>
-            <div id="calendar"></div>
-        </header>
-        <div id="schedule-list"></div>
+<div class="app-container">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3>מטופלים ומכסות</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">לחצי על שם לצפייה בכרטיס המטופל</p>
+        </div>
+        <div id="sidebar-list"></div>
     </div>
 
-    <div class="card patients-sidebar">
-        <h3>מכסות טיפול</h3>
-        <div id="patients-tracker"></div>
+    <div class="main-content">
+        <div class="card">
+            <header>
+                <h2 title="ניהול יומן טיפולים הידרותרפי">יומן טיפולים 🌊</h2>
+                <div id="calendar" title="בחרי תאריך (ימי א-ב מודגשים בירקרק)"></div>
+            </header>
+            <div id="schedule-list"></div>
+        </div>
     </div>
 </div>
 
 <div class="overlay" id="overlay" onclick="closeModal()"></div>
-<div class="modal" id="modal">
-    <h3>בחרי מטופל לשיבוץ:</h3>
-    <div id="modal-list" style="max-height: 400px; overflow-y: auto;"></div>
-    <button onclick="clearSlot()" style="width:100%; margin-top:15px; color:var(--error); border:none; background:none; cursor:pointer; font-weight:bold;">ביטול שיבוץ בשעה זו</button>
+
+<div class="modal" id="modal-profile">
+    <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h2 id="profile-name" style="margin:0; color:var(--primary-ocean);"></h2>
+        <button class="btn-close" onclick="closeModal()" title="סגירה">✕</button>
+    </div>
+    <div style="max-height: 400px; overflow-y: auto;">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">גיל</label>
+        <input type="text" id="prof-age">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">אבחנה</label>
+        <input type="text" id="prof-diag">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">מכסת טיפולים</label>
+        <input type="number" id="prof-limit">
+        <label style="font-size:0.85rem; font-weight:700; color:var(--text-muted);">מטרות טיפול</label>
+        <textarea id="prof-goals" rows="3"></textarea>
+    </div>
+    <button class="save-btn" onclick="saveProfile()" title="שמירת כל השינויים בתיק המטופל">עדכון כרטיס</button>
+</div>
+
+<div class="modal" id="modal-select">
+    <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h3 style="margin:0">מי המטופל/ת?</h3>
+        <button class="btn-close" onclick="closeModal()" title="סגירה">✕</button>
+    </div>
+    <div id="patient-options" style="max-height: 300px; overflow-y: auto;"></div>
+    <button onclick="clearSlot()" style="width:100%; margin-top:20px; color:var(--error-soft); border:none; background:none; cursor:pointer; font-weight:600;" title="מחיקת השיבוץ מהשעה הזו">ביטול שיבוץ נוכחי</button>
+</div>
+
+<div class="modal" id="modal-note">
+    <div class="modal-header" style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <h3 style="margin:0">איך היה הטיפול היום?</h3>
+        <button class="btn-close" onclick="closeModal()" title="סגירה">✕</button>
+    </div>
+    <textarea id="note-text" style="height:150px" placeholder="כתבי כאן דגשים, התקדמות או הערות..."></textarea>
+    <button class="save-btn" onclick="saveDailyNote()" title="שמירת ההערה ליום זה">שמירת סיכום טיפול</button>
 </div>
 
 <script>
-    // רשימת השמות המעודכנת
-    const allPatients = [
-        "תבל דמקה", "אלה דמקה", "רפאל אגמייב", "יגל לוצקי", "אוריה לוצקי", 
-        "אריאל מלול", "שי חיים", "שירה יצחק", "שי יצחק", "אלרועי פרנקו", 
-        "שניאור", "אלי קלין", "ישי שלמה וורקה"
-    ];
-    
-    let db = JSON.parse(localStorage.getItem('hydro_v5_db')) || {};
-    let patientsConfig = JSON.parse(localStorage.getItem('hydro_v5_config')) || {};
-    let selectedDate = "";
-    let activeSlotId = null;
-
-    // אתחול הגדרות לכל שם
-    allPatients.forEach(name => {
-        if (!patientsConfig[name]) patientsConfig[name] = { limit: 12, used: 0 };
-    });
-
-    const hoursConfig = { 
-        0: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"], 
-        1: ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"] 
+    const firebaseConfig = {
+        apiKey: "AIzaSyCa_hHBMstgBc23gilQ9r6s2X15odhFAp4",
+        authDomain: "hydro-diary-a3c4f.firebaseapp.com",
+        databaseURL: "https://hydro-diary-a3c4f-default-rtdb.firebaseio.com/", 
+        projectId: "hydro-diary-a3c4f",
+        storageBucket: "hydro-diary-a3c4f.firebasestorage.app",
+        messagingSenderId: "170859946593",
+        appId: "1:170859946593:web:6bc904872012fca46d8020"
     };
 
-    flatpickr("#calendar", { inline: true, locale: "he", onChange: (d, str) => { selectedDate = str; render(); } });
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref();
+
+    const PATIENTS = ["תבל דמקה", "אלה דמקה", "רפאל אגמייב", "יגל לוצקי", "אוריה לוצקי", "אריאל מלול", "שי חיים", "שירה יצחק", "שי יצחק", "אלרועי פרנקו", "שניאור", "אלי קלין", "ישי שלמה וורקה"];
+    const HOURS = { 0: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30"], 1: ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"] };
+
+    let globalData = { schedule: {}, config: {} };
+    let activeDate = "";
+    let activeSlotId = null;
+
+    db.on('value', (snap) => {
+        const val = snap.val();
+        if (val) {
+            globalData.schedule = val.schedule || {};
+            globalData.config = val.config || {};
+            render();
+        }
+    });
+
+    flatpickr("#calendar", { 
+        inline: true, 
+        locale: "he", 
+        onChange: (d, str) => { activeDate = str; render(); },
+        onDayCreate: (dObj, dStr, fp, dayElem) => {
+            const d = dayElem.dateObj.getDay();
+            if (d === 0 || d === 1) dayElem.classList.add("is-work-day");
+        }
+    });
 
     function render() {
-        renderTracker();
-        const day = new Date(selectedDate).getDay();
+        const sidebar = document.getElementById('sidebar-list');
+        sidebar.innerHTML = '';
+        PATIENTS.sort().forEach(name => {
+            const conf = globalData.config[name] || {limit:12, used:0};
+            sidebar.innerHTML += `
+                <div class="patient-nav-item" onclick="openProfile('${name}')" title="לחצי לפתיחת תיק מטופל ומטרות">
+                    <span>${name}</span>
+                    <span class="quota" title="נוצלו ${conf.used} מתוך ${conf.limit} טיפולים">${conf.used}/${conf.limit}</span>
+                </div>`;
+        });
+
         const list = document.getElementById('schedule-list');
         list.innerHTML = '';
-        const slots = hoursConfig[day] || [];
-
-        if (slots.length === 0) {
-            list.innerHTML = '<p style="text-align:center; padding:30px; color:#888;">יום ללא טיפולים ☕</p>';
-            return;
-        }
-
+        const day = new Date(activeDate).getDay();
+        const slots = HOURS[day] || [];
+        
+        if (!activeDate) { list.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted)">אנא בחרי תאריך מהלוח לעיל</p>'; return; }
+        
         slots.forEach(time => {
-            const id = `${selectedDate}_${time}`;
-            const data = db[id] || { name: "", status: "" };
-            const pInfo = patientsConfig[data.name] || { used: 0, limit: 0 };
-            
-            let badgeClass = "";
-            if (data.name) {
-                if (pInfo.used >= pInfo.limit) badgeClass = "danger";
-                else if (pInfo.used >= pInfo.limit - 2) badgeClass = "warn";
-            }
+            const id = `${activeDate}_${time}`.replace(/\./g, '_');
+            const slot = globalData.schedule[id] || { name: "", status: "", note: "" };
+            const conf = globalData.config[slot.name] || {used:0, limit:12};
 
-            const card = document.createElement('div');
-            card.className = 'slot-card';
-            card.innerHTML = `
-                <div class="time-tag">${time}</div>
-                <div class="patient-select-area" onclick="openModal('${id}')">
-                    <span class="patient-name">${data.name || '<span style="color:#ccc">לחצי לשיבוץ...</span>'}</span>
-                    ${data.name ? `<span class="count-badge ${badgeClass}">${pInfo.used}/${pInfo.limit}</span>` : ''}
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <button class="circle-btn v ${data.status==='v'?'active':''}" onclick="setStatus('${id}', 'v')">V</button>
-                    <button class="circle-btn x ${data.status==='x'?'active':''}" onclick="setStatus('${id}', 'x')">X</button>
-                </div>
-            `;
-            list.appendChild(card);
+            list.innerHTML += `
+                <div class="slot-card">
+                    <div class="time-tag">${time}</div>
+                    <div class="patient-slot-info" onclick="openSelectModal('${id}')" title="לחצי לשיבוץ מטופל בשעה זו">
+                        ${slot.name ? `<span>${slot.name} <small style="color:var(--text-muted)">(${conf.used}/${conf.limit})</small></span>` : '<span style="color:#CBD5E1">פנוי לשיבוץ</span>'}
+                    </div>
+                    ${slot.name ? `
+                    <div class="actions">
+                        <button class="btn-icon btn-note ${slot.note?'has-note':''}" onclick="openDailyNote('${id}')" title="הערות לטיפול של היום">📝</button>
+                        <button class="btn-icon btn-v ${slot.status==='v'?'active':''}" onclick="updateStatus('${id}', 'v')" title="סמן נוכחות (יוריד מהמכסה)">V</button>
+                        <button class="btn-icon btn-x ${slot.status==='x'?'active':''}" onclick="updateStatus('${id}', 'x')" title="סמן חיסור">X</button>
+                    </div>` : ''}
+                </div>`;
         });
     }
 
-    function renderTracker() {
-        const tracker = document.getElementById('patients-tracker');
-        tracker.innerHTML = '';
-        allPatients.sort().forEach(name => {
-            const info = patientsConfig[name];
-            const div = document.createElement('div');
-            div.className = 'patient-item';
-            div.innerHTML = `
-                <div class="patient-header">
-                    <span>${name}</span>
-                    <div>מכסה: <input type="number" class="limit-input" value="${info.limit}" onchange="updateLimit('${name}', this.value)"></div>
-                </div>
-                <div style="font-size: 0.8em; color: ${info.used >= info.limit ? 'red' : '#666'}">
-                    נוצלו: ${info.used} מתוך ${info.limit}
-                </div>
-            `;
-            tracker.appendChild(div);
-        });
+    function updateStatus(id, type) {
+        const slot = globalData.schedule[id];
+        const name = slot.name;
+        if (!globalData.config[name]) globalData.config[name] = {limit:12, used:0};
+        
+        if (slot.status !== 'v' && type === 'v') globalData.config[name].used++;
+        else if (slot.status === 'v' && type !== 'v') globalData.config[name].used--;
+        
+        slot.status = (slot.status === type) ? "" : type;
+        db.set(globalData);
     }
 
-    function setStatus(id, stat) {
-        if (!db[id] || !db[id].name) return;
-        const name = db[id].name;
-        const prevStatus = db[id].status;
-
-        if (prevStatus !== 'v' && stat === 'v') patientsConfig[name].used++;
-        else if (prevStatus === 'v' && stat !== 'v') patientsConfig[name].used--;
-
-        db[id].status = (prevStatus === stat) ? "" : stat;
-        save(); render();
-    }
-
-    function updateLimit(name, val) {
-        patientsConfig[name].limit = parseInt(val) || 0;
-        save(); render();
-    }
-
-    function openModal(id) {
-        activeSlotId = id;
-        const modalList = document.getElementById('modal-list');
-        modalList.innerHTML = '';
-        allPatients.forEach(name => {
-            const btn = document.createElement('button');
-            btn.className = 'patient-pick-btn';
-            btn.innerText = name;
-            btn.onclick = () => { 
-                if(!db[id]) db[id] = {};
-                db[id].name = name; 
-                save(); closeModal(); render(); 
-            };
-            modalList.appendChild(btn);
-        });
-        document.getElementById('modal').style.display = 'block';
+    function openProfile(name) {
+        activePatientName = name;
+        const conf = globalData.config[name] || { limit: 12, used: 0, age: "", diag: "", goals: "" };
+        document.getElementById('profile-name').innerText = name;
+        document.getElementById('prof-age').value = conf.age || "";
+        document.getElementById('prof-diag').value = conf.diag || "";
+        document.getElementById('prof-limit').value = conf.limit || 12;
+        document.getElementById('prof-goals').value = conf.goals || "";
+        document.getElementById('modal-profile').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
     }
 
-    function clearSlot() {
-        if(db[activeSlotId]) {
-            if(db[activeSlotId].status === 'v') patientsConfig[db[activeSlotId].name].used--;
-            db[activeSlotId] = { name: "", status: "" };
-        }
-        save(); closeModal(); render();
+    function saveProfile() {
+        const c = globalData.config[activePatientName];
+        c.age = document.getElementById('prof-age').value;
+        c.diag = document.getElementById('prof-diag').value;
+        c.limit = parseInt(document.getElementById('prof-limit').value) || 12;
+        c.goals = document.getElementById('prof-goals').value;
+        db.set(globalData);
+        closeModal();
     }
 
-    function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
-    
-    function save() {
-        localStorage.setItem('hydro_v5_db', JSON.stringify(db));
-        localStorage.setItem('hydro_v5_config', JSON.stringify(patientsConfig));
+    function openSelectModal(id) {
+        activeSlotId = id;
+        const container = document.getElementById('patient-options');
+        container.innerHTML = '';
+        PATIENTS.sort().forEach(name => {
+            container.innerHTML += `<div class="patient-nav-item" style="margin-bottom:8px" onclick="selectForSlot('${name}')">${name}</div>`;
+        });
+        document.getElementById('modal-select').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+    }
+
+    function selectForSlot(name) {
+        globalData.schedule[activeSlotId] = { name: name, status: "", note: "" };
+        db.set(globalData);
+        closeModal();
+    }
+
+    function openDailyNote(id) {
+        activeSlotId = id;
+        document.getElementById('note-text').value = globalData.schedule[id].note || "";
+        document.getElementById('modal-note').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+    }
+
+    function saveDailyNote() {
+        globalData.schedule[activeSlotId].note = document.getElementById('note-text').value;
+        db.set(globalData);
+        closeModal();
+    }
+
+    function clearSlot() {
+        const slot = globalData.schedule[activeSlotId];
+        if (slot && slot.status === 'v') globalData.config[slot.name].used--;
+        delete globalData.schedule[activeSlotId];
+        db.set(globalData);
+        closeModal();
+    }
+
+    function closeModal() {
+        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        document.getElementById('overlay').style.display = 'none';
     }
 </script>
 </body>
